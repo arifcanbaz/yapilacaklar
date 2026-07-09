@@ -1,0 +1,16 @@
+name = "yapilacaklar-push"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["* * * * *"]
+
+[[kv_namespaces]]
+binding = "PUSH_KV"
+id = "58b0774f442c419bb741ea6eb24a0f97"
+
+[vars]
+VAPID_PUBLIC_KEY = "BMHKKo4sf8_if6kLQrZuEnZIsfZ0A-EfOcQ--n8DWWke4vV5G1ElNwRE3KG_HPtWeNW3meCMTsZD_J1mC7utD0g"
+VAPID_SUBJECT = "mailto:arifcanbaz99@gmail.com"
+ALLOWED_ORIGIN = "https://arifcanbaz.github.io"

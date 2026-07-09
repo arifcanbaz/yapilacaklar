@@ -24,30 +24,48 @@ export interface Env {
   VAPID_PRIVATE_KEY: string;
   VAPID_SUBJECT: string;
   ALLOWED_ORIGIN: string;
+  SYNC_SECRET: string;
 }
 
 function corsHeaders(env: Env): HeadersInit {
   return {
     'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Sync-Secret',
+  };
+}
+
+function isAuthorized(request: Request, env: Env): boolean {
+  return request.headers.get('X-Sync-Secret') === env.SYNC_SECRET;
+}
+
+const TIME_ZONE = 'Europe/Istanbul';
+
+function istanbulParts(): { date: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  let hour = get('hour');
+  if (hour === '24') hour = '00';
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${hour}:${get('minute')}`,
   };
 }
 
 function todayStr(): string {
-  const d = new Date();
-  return (
-    d.getFullYear() +
-    '-' +
-    String(d.getMonth() + 1).padStart(2, '0') +
-    '-' +
-    String(d.getDate()).padStart(2, '0')
-  );
+  return istanbulParts().date;
 }
 
 function curTime(): string {
-  const d = new Date();
-  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return istanbulParts().time;
 }
 
 async function handleSync(request: Request, env: Env): Promise<Response> {
@@ -159,6 +177,9 @@ export default {
     }
 
     if (url.pathname === '/sync' && request.method === 'POST') {
+      if (!isAuthorized(request, env)) {
+        return new Response('unauthorized', { status: 401, headers: corsHeaders(env) });
+      }
       try {
         return await handleSync(request, env);
       } catch (err) {

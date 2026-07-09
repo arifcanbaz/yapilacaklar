@@ -209,6 +209,7 @@ if('serviceWorker' in navigator){
 const KEY='todo-list-v2';
 const WORKER_URL='https://yapilacaklar-push.arifcanbaz.workers.dev';
 const VAPID_PUBLIC_KEY='BMHKKo4sf8_if6kLQrZuEnZIsfZ0A-EfOcQ--n8DWWke4vV5G1ElNwRE3KG_HPtWeNW3meCMTsZD_J1mC7utD0g';
+const SYNC_SECRET='EMPf6NnGoSkmalHYORUWcibQdFxBW6XQ';
 let tasks=[];
 let filter='today';
 let notifiedIds=new Set();
@@ -232,7 +233,7 @@ function urlBase64ToUint8Array(base64String){
 function syncToServer(subscription){
   fetch(WORKER_URL+'/sync',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','X-Sync-Secret':SYNC_SECRET},
     body:JSON.stringify({deviceId:getDeviceId(),subscription,tasks})
   }).catch(()=>{});
 }

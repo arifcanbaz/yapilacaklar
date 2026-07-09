@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Yapılacaklar</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Yapılacaklar">
+<meta name="theme-color" content="#15171C">
+<style>
+  :root{
+    --bg:#15171C;
+    --panel:#1E2128;
+    --panel-2:#262A33;
+    --line:#31363F;
+    --text:#EDEFF3;
+    --muted:#8B92A0;
+    --amber:#F5A623;
+    --amber-dim:rgba(245,166,35,.14);
+    --green:#3DBE7B;
+    --red:#E5544B;
+    --red-dim:rgba(229,84,75,.14);
+    --blue:#5B9BD5;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg);color:var(--text);
+    display:flex;flex-direction:column;
+    max-width:560px;margin:0 auto;
+    padding-top:env(safe-area-inset-top);
+  }
+  header{padding:18px 18px 10px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:3px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .date{font-size:13px;color:var(--muted);margin-top:2px}
+
+  .progress{margin:10px 18px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+  .progress-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
+  .progress-top b{color:var(--text);font-variant-numeric:tabular-nums;font-size:15px}
+  .bar{height:6px;background:var(--panel-2);border-radius:3px;margin-top:8px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--amber);border-radius:3px;transition:width .35s ease}
+
+  .tabs{display:flex;gap:6px;padding:12px 18px 8px}
+  .tab{
+    flex:1;padding:10px 0;border-radius:10px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);font-size:13.5px;font-weight:600;
+    text-align:center;cursor:pointer;transition:.15s;position:relative;
+  }
+  .tab.active{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+  .tab .badge{
+    position:absolute;top:-6px;right:-4px;min-width:18px;height:18px;padding:0 5px;
+    border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;
+    display:none;align-items:center;justify-content:center;
+  }
+  .tab .badge.show{display:inline-flex}
+
+  main{flex:1;overflow-y:auto;padding:6px 18px 150px;-webkit-overflow-scrolling:touch}
+
+  .group-label{
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin:16px 2px 8px;
+  }
+  .group-label:first-child{margin-top:4px}
+  .group-label b{color:var(--blue)}
+
+  .task{
+    display:flex;align-items:center;gap:12px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;padding:13px 14px;margin-bottom:9px;
+    animation:pop .18s ease;
+  }
+  .task.late{border-color:var(--red);background:linear-gradient(var(--red-dim),var(--red-dim)),var(--panel)}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .check{
+    width:26px;height:26px;min-width:26px;border-radius:8px;
+    border:2px solid var(--muted);background:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
+  }
+  .check svg{width:15px;height:15px;stroke:#15171C;stroke-width:3.2;fill:none;opacity:0;transform:scale(.5);transition:.15s}
+  .task.done .check{background:var(--green);border-color:var(--green)}
+  .task.done .check svg{opacity:1;transform:scale(1)}
+  .task-body{flex:1;min-width:0}
+  .task-text{font-size:15.5px;line-height:1.35;word-break:break-word}
+  .task.done .task-text{color:var(--muted);text-decoration:line-through}
+  .task-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+  .chip{
+    font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:7px;
+    background:var(--panel-2);color:var(--muted);display:inline-flex;align-items:center;gap:4px;
+  }
+  .chip.time{color:var(--amber);background:var(--amber-dim)}
+  .chip.late-chip{color:#fff;background:var(--red)}
+  .chip.date-chip{color:var(--blue);background:rgba(91,155,213,.14)}
+  .del{background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;display:flex;border-radius:8px}
+  .del:active{color:var(--red)}
+  .del svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
+
+  .empty{text-align:center;color:var(--muted);padding:50px 20px;font-size:14.5px;line-height:1.6}
+  .empty b{color:var(--text);display:block;font-size:16px;margin-bottom:4px}
+
+  .clear-done{
+    display:none;width:100%;margin-top:6px;padding:12px;border-radius:12px;
+    border:1px dashed var(--line);background:none;color:var(--muted);
+    font-size:13.5px;font-weight:600;cursor:pointer;
+  }
+  .clear-done.show{display:block}
+
+  .alarm{
+    position:fixed;top:calc(12px + env(safe-area-inset-top));left:14px;right:14px;max-width:532px;margin:0 auto;
+    background:var(--red);color:#fff;border-radius:14px;padding:14px 16px;
+    font-size:14.5px;font-weight:600;line-height:1.4;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:50;
+    display:none;animation:slideDown .25s ease;
+  }
+  .alarm.show{display:block}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+  .alarm small{display:block;font-weight:400;opacity:.9;margin-top:3px;font-size:12.5px}
+
+  .composer{
+    position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;
+    padding:10px 14px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(to top, var(--bg) 80%, transparent);
+  }
+  .composer-box{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:10px}
+  .row1{display:flex;gap:8px}
+  .row1 input[type=text]{
+    flex:1;background:none;border:none;outline:none;color:var(--text);
+    font-size:16px;padding:8px 6px;font-family:inherit;
+  }
+  .row1 input::placeholder{color:var(--muted)}
+  .add{
+    width:44px;min-width:44px;height:44px;border:none;border-radius:11px;
+    background:var(--amber);color:#15171C;font-size:26px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s;
+  }
+  .add:active{transform:scale(.92)}
+  .row2{display:flex;gap:8px;margin-top:8px}
+  .opt{
+    flex:1;display:flex;align-items:center;gap:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:7px 10px;font-size:13px;color:var(--muted);
+  }
+  .opt input{
+    flex:1;background:none;border:none;outline:none;color:var(--text);
+    font-size:14px;font-family:inherit;color-scheme:dark;min-width:0;
+  }
+  .opt .lbl{font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="alarm" id="alarm"></div>
+
+<header>
+  <div class="eyebrow">Görev Panosu</div>
+  <h1>Yapılacaklar</h1>
+  <div class="date" id="dateLabel"></div>
+</header>
+
+<div class="progress">
+  <div class="progress-top"><span>Bugünkü ilerleme</span><b id="counter">0 / 0</b></div>
+  <div class="bar"><i id="barFill"></i></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-f="today">Bugün<span class="badge" id="lateBadge"></span></button>
+  <button class="tab" data-f="planned">Planlı</button>
+  <button class="tab" data-f="done">Biten</button>
+</div>
+
+<main>
+  <div id="list"></div>
+  <button class="clear-done" id="clearDone">Bitenleri temizle</button>
+</main>
+
+<div class="composer">
+  <div class="composer-box">
+    <div class="row1">
+      <input id="input" type="text" placeholder="Yeni görev..." enterkeyhint="done" autocomplete="off">
+      <button class="add" id="addBtn">+</button>
+    </div>
+    <div class="row2">
+      <label class="opt"><span class="lbl">Tarih</span><input type="date" id="dateInput"></label>
+      <label class="opt"><span class="lbl">Saat</span><input type="time" id="timeInput"></label>
+    </div>
+  </div>
+</div>
+
+<script>
+// Service worker kaydı (çevrimdışı çalışma)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+const KEY='todo-list-v2';
+let tasks=[];
+let filter='today';
+let notifiedIds=new Set();
+
+const list=document.getElementById('list');
+const input=document.getElementById('input');
+const dateInput=document.getElementById('dateInput');
+const timeInput=document.getElementById('timeInput');
+const addBtn=document.getElementById('addBtn');
+const counter=document.getElementById('counter');
+const barFill=document.getElementById('barFill');
+const clearBtn=document.getElementById('clearDone');
+const alarmEl=document.getElementById('alarm');
+const lateBadge=document.getElementById('lateBadge');
+
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+document.getElementById('dateLabel').textContent=
+  new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+dateInput.min=todayStr();
+
+function load(){
+  try{
+    const r=localStorage.getItem(KEY);
+    if(r)tasks=JSON.parse(r);
+  }catch(e){tasks=[];}
+  render();
+  if('Notification' in window && Notification.permission==='default'){
+    try{Notification.requestPermission();}catch(e){}
+  }
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(tasks));}catch(e){}
+}
+
+function addTask(){
+  const t=input.value.trim();
+  if(!t)return;
+  tasks.unshift({
+    id:Date.now(),
+    text:t,
+    done:false,
+    date:dateInput.value||todayStr(),
+    time:timeInput.value||null
+  });
+  input.value='';dateInput.value='';timeInput.value='';
+  save();render();
+}
+addBtn.onclick=addTask;
+input.addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
+
+function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();render();}}
+function remove(id){tasks=tasks.filter(x=>x.id!==id);save();render();}
+clearBtn.onclick=()=>{tasks=tasks.filter(x=>!x.done);save();render();};
+
+document.querySelectorAll('.tab').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    filter=b.dataset.f;render();
+  };
+});
+
+function isLate(t){
+  if(t.done)return false;
+  const today=todayStr();
+  if(t.date<today)return true;
+  if(t.date===today&&t.time){
+    const now=new Date();
+    const cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    return t.time<=cur;
+  }
+  return false;
+}
+function fmtDate(s){
+  const [y,m,d]=s.split('-');
+  return new Date(y,m-1,d).toLocaleDateString('tr-TR',{weekday:'short',day:'numeric',month:'long'});
+}
+
+function taskEl(t,showDate){
+  const late=isLate(t);
+  const div=document.createElement('div');
+  div.className='task'+(t.done?' done':'')+(late?' late':'');
+  let meta='';
+  if(t.time)meta+='<span class="chip time">⏰ '+t.time+'</span>';
+  if(showDate)meta+='<span class="chip date-chip">📅 '+fmtDate(t.date)+'</span>';
+  if(late)meta+='<span class="chip late-chip">Gecikti!</span>';
+  div.innerHTML=
+    '<button class="check" aria-label="Tamamla"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>'+
+    '<div class="task-body"><div class="task-text"></div>'+(meta?'<div class="task-meta">'+meta+'</div>':'')+'</div>'+
+    '<button class="del" aria-label="Sil"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13h8l1-13"/></svg></button>';
+  div.querySelector('.task-text').textContent=t.text;
+  div.querySelector('.check').onclick=()=>toggle(t.id);
+  div.querySelector('.del').onclick=()=>remove(t.id);
+  return div;
+}
+
+function render(){
+  const today=todayStr();
+  const todayTasks=tasks.filter(t=>t.date<=today&&!t.done);
+  const plannedTasks=tasks.filter(t=>t.date>today&&!t.done);
+  const doneTasks=tasks.filter(t=>t.done);
+
+  const todayAll=tasks.filter(t=>t.date<=today);
+  const doneToday=todayAll.filter(t=>t.done).length;
+  counter.textContent=doneToday+' / '+todayAll.length;
+  barFill.style.width=(todayAll.length?(doneToday/todayAll.length*100):0)+'%';
+
+  const lateCount=tasks.filter(isLate).length;
+  lateBadge.textContent=lateCount;
+  lateBadge.classList.toggle('show',lateCount>0);
+
+  clearBtn.classList.toggle('show',filter==='done'&&doneTasks.length>0);
+  list.innerHTML='';
+
+  if(filter==='today'){
+    if(todayTasks.length===0){
+      list.innerHTML='<div class="empty"><b>Bugün için görev yok 🎉</b>Aşağıdan görev ekleyebilir, tarih seçerek ileri güne planlayabilirsin.</div>';
+      return;
+    }
+    const timed=todayTasks.filter(t=>t.time).sort((a,b)=>a.time.localeCompare(b.time));
+    const untimed=todayTasks.filter(t=>!t.time);
+    const overdue=todayTasks.filter(t=>t.date<today);
+    if(overdue.length){
+      const gl=document.createElement('div');gl.className='group-label';gl.textContent='Geçmişten kalan';
+      list.appendChild(gl);
+      overdue.forEach(t=>list.appendChild(taskEl(t,true)));
+    }
+    const rest=[...timed,...untimed].filter(t=>t.date===today);
+    if(rest.length){
+      if(overdue.length){
+        const gl=document.createElement('div');gl.className='group-label';gl.textContent='Bugün';
+        list.appendChild(gl);
+      }
+      rest.forEach(t=>list.appendChild(taskEl(t,false)));
+    }
+  }
+  else if(filter==='planned'){
+    if(plannedTasks.length===0){
+      list.innerHTML='<div class="empty"><b>Planlı görev yok</b>Görev eklerken ileri bir tarih seçersen burada listelenir. O gün geldiğinde otomatik olarak "Bugün" sekmesine düşer.</div>';
+      return;
+    }
+    const byDate={};
+    plannedTasks.forEach(t=>{(byDate[t.date]=byDate[t.date]||[]).push(t)});
+    Object.keys(byDate).sort().forEach(d=>{
+      const gl=document.createElement('div');gl.className='group-label';
+      gl.innerHTML='<b>'+fmtDate(d)+'</b>';
+      list.appendChild(gl);
+      byDate[d].sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'))
+        .forEach(t=>list.appendChild(taskEl(t,false)));
+    });
+  }
+  else{
+    if(doneTasks.length===0){
+      list.innerHTML='<div class="empty"><b>Henüz biten görev yok</b>Tamamladığın görevler burada birikir.</div>';
+      return;
+    }
+    doneTasks.forEach(t=>list.appendChild(taskEl(t,true)));
+  }
+}
+
+/* ---- Alarm / bildirim kontrolü ---- */
+let audioCtx=null;
+function beep(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.type='sine';o.frequency.value=880;
+    g.gain.setValueAtTime(.25,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.6);
+    o.start();o.stop(audioCtx.currentTime+.6);
+  }catch(e){}
+}
+function showAlarm(t){
+  alarmEl.innerHTML='⏰ <b>Görev zamanı geçti:</b> '+t.text.replace(/</g,'&lt;')+
+    '<small>Saat '+t.time+' için planlanmıştı. Dokunarak kapat.</small>';
+  alarmEl.classList.add('show');
+  beep();
+  if('Notification' in window && Notification.permission==='granted'){
+    try{new Notification('Görev zamanı geçti ⏰',{body:t.text+' ('+t.time+')'});}catch(e){}
+  }
+  if(navigator.vibrate)navigator.vibrate([200,100,200]);
+}
+alarmEl.onclick=()=>alarmEl.classList.remove('show');
+
+function checkAlarms(){
+  const today=todayStr();
+  const now=new Date();
+  const cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  tasks.forEach(t=>{
+    if(!t.done&&t.date===today&&t.time&&t.time<=cur&&!notifiedIds.has(t.id)){
+      notifiedIds.add(t.id);
+      showAlarm(t);
+    }
+  });
+  render();
+}
+setInterval(checkAlarms,30000);
+// Uygulama tekrar öne geldiğinde de kontrol et
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden)checkAlarms();
+});
+
+load();
+</script>
+</body>
+</html>

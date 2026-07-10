@@ -96,9 +96,25 @@
   .chip.time{color:var(--amber);background:var(--amber-dim)}
   .chip.late-chip{color:#fff;background:var(--red)}
   .chip.date-chip{color:var(--blue);background:rgba(91,155,213,.14)}
-  .del{background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;display:flex;border-radius:8px}
+  .del,.edit{background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;display:flex;border-radius:8px}
   .del:active{color:var(--red)}
-  .del svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
+  .edit:active{color:var(--amber)}
+  .del svg,.edit svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
+
+  .task.editing{flex-direction:column;align-items:stretch}
+  .edit-form{width:100%;display:flex;flex-direction:column;gap:8px}
+  .edit-form .edit-text{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;outline:none;width:100%;
+  }
+  .edit-row2{display:flex;gap:8px}
+  .edit-row2 .opt{flex:1;display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;color:var(--muted)}
+  .edit-row2 .opt input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
+  .edit-row2 .opt .lbl{font-weight:600;white-space:nowrap}
+  .edit-actions{display:flex;gap:8px;justify-content:flex-end}
+  .edit-actions button{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:none;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+  .edit-cancel{color:var(--muted)}
+  .edit-save{background:var(--amber);border-color:var(--amber);color:#15171C}
 
   .empty{text-align:center;color:var(--muted);padding:50px 20px;font-size:14.5px;line-height:1.6}
   .empty b{color:var(--text);display:block;font-size:16px;margin-bottom:4px}
@@ -213,6 +229,7 @@ const SYNC_SECRET='EMPf6NnGoSkmalHYORUWcibQdFxBW6XQ';
 let tasks=[];
 let filter='today';
 let notifiedIds=new Set();
+let editingId=null;
 
 function getDeviceId(){
   let id=localStorage.getItem('device-id');
@@ -301,6 +318,7 @@ input.addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
 
 function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();render();}}
 function remove(id){tasks=tasks.filter(x=>x.id!==id);save();render();}
+function startEdit(id){editingId=id;render();}
 clearBtn.onclick=()=>{tasks=tasks.filter(x=>!x.done);save();render();};
 
 document.querySelectorAll('.tab').forEach(b=>{
@@ -327,7 +345,57 @@ function fmtDate(s){
   return new Date(y,m-1,d).toLocaleDateString('tr-TR',{weekday:'short',day:'numeric',month:'long'});
 }
 
+function editTaskEl(t){
+  const div=document.createElement('div');
+  div.className='task editing';
+
+  const form=document.createElement('div');
+  form.className='edit-form';
+
+  const textInput=document.createElement('input');
+  textInput.type='text';textInput.className='edit-text';textInput.value=t.text;
+
+  const row2=document.createElement('div');row2.className='edit-row2';
+
+  const dateLbl=document.createElement('label');dateLbl.className='opt';
+  dateLbl.innerHTML='<span class="lbl">Tarih</span>';
+  const dateInputEl=document.createElement('input');
+  dateInputEl.type='date';dateInputEl.className='edit-date';dateInputEl.value=t.date;
+  dateLbl.appendChild(dateInputEl);
+
+  const timeLbl=document.createElement('label');timeLbl.className='opt';
+  timeLbl.innerHTML='<span class="lbl">Saat</span>';
+  const timeInputEl=document.createElement('input');
+  timeInputEl.type='time';timeInputEl.className='edit-time';if(t.time)timeInputEl.value=t.time;
+  timeLbl.appendChild(timeInputEl);
+
+  row2.appendChild(dateLbl);row2.appendChild(timeLbl);
+
+  const actions=document.createElement('div');actions.className='edit-actions';
+  const cancelBtn=document.createElement('button');cancelBtn.type='button';cancelBtn.className='edit-cancel';cancelBtn.textContent='İptal';
+  const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='edit-save';saveBtn.textContent='Kaydet';
+  actions.appendChild(cancelBtn);actions.appendChild(saveBtn);
+
+  form.appendChild(textInput);form.appendChild(row2);form.appendChild(actions);
+  div.appendChild(form);
+
+  cancelBtn.onclick=()=>{editingId=null;render();};
+  saveBtn.onclick=()=>{
+    const newText=textInput.value.trim();
+    if(!newText)return;
+    t.text=newText;
+    t.date=dateInputEl.value||todayStr();
+    t.time=timeInputEl.value||null;
+    editingId=null;
+    save();render();
+  };
+  textInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveBtn.click();}});
+
+  return div;
+}
+
 function taskEl(t,showDate){
+  if(t.id===editingId)return editTaskEl(t);
   const late=isLate(t);
   const div=document.createElement('div');
   div.className='task'+(t.done?' done':'')+(late?' late':'');
@@ -338,9 +406,11 @@ function taskEl(t,showDate){
   div.innerHTML=
     '<button class="check" aria-label="Tamamla"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>'+
     '<div class="task-body"><div class="task-text"></div>'+(meta?'<div class="task-meta">'+meta+'</div>':'')+'</div>'+
+    '<button class="edit" aria-label="Düzenle"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>'+
     '<button class="del" aria-label="Sil"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13h8l1-13"/></svg></button>';
   div.querySelector('.task-text').textContent=t.text;
   div.querySelector('.check').onclick=()=>toggle(t.id);
+  div.querySelector('.edit').onclick=()=>startEdit(t.id);
   div.querySelector('.del').onclick=()=>remove(t.id);
   return div;
 }

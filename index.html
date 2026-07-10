@@ -38,7 +38,8 @@
   header{padding:18px 18px 10px}
   .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:3px}
   h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
-  .date{font-size:13px;color:var(--muted);margin-top:2px}
+  .date{font-size:13px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px}
+  .week-chip{font-size:11px;font-weight:700;color:var(--blue);background:rgba(91,155,213,.14);padding:2px 7px;border-radius:6px}
 
   .progress{margin:10px 18px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
   .progress-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
@@ -96,6 +97,7 @@
   .chip.time{color:var(--amber);background:var(--amber-dim)}
   .chip.late-chip{color:#fff;background:var(--red)}
   .chip.date-chip{color:var(--blue);background:rgba(91,155,213,.14)}
+  .chip.repeat-chip{color:var(--green);background:rgba(61,190,123,.14)}
   .del,.edit{background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;display:flex;border-radius:8px}
   .del:active{color:var(--red)}
   .edit:active{color:var(--amber)}
@@ -107,10 +109,11 @@
     background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;outline:none;width:100%;
   }
-  .edit-row2{display:flex;gap:8px}
-  .edit-row2 .opt{flex:1;display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;color:var(--muted)}
-  .edit-row2 .opt input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
-  .edit-row2 .opt .lbl{font-weight:600;white-space:nowrap}
+  .edit-row2,.edit-row3{display:flex;gap:8px}
+  .edit-row2 .opt,.edit-row3 .opt{flex:1;display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;color:var(--muted)}
+  .edit-row2 .opt input,.edit-row3 .opt select{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
+  .edit-row3 .opt select{-webkit-appearance:none;appearance:none}
+  .edit-row2 .opt .lbl,.edit-row3 .opt .lbl{font-weight:600;white-space:nowrap}
   .edit-actions{display:flex;gap:8px;justify-content:flex-end}
   .edit-actions button{padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:none;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
   .edit-cancel{color:var(--muted)}
@@ -163,15 +166,17 @@
   }
   .add:active{transform:scale(.92)}
   .row2{display:flex;gap:8px;margin-top:8px}
+  .row3{margin-top:8px}
   .opt{
     flex:1;display:flex;align-items:center;gap:6px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;
     padding:7px 10px;font-size:13px;color:var(--muted);
   }
-  .opt input{
+  .opt input,.opt select{
     flex:1;background:none;border:none;outline:none;color:var(--text);
     font-size:14px;font-family:inherit;color-scheme:dark;min-width:0;
   }
+  .opt select{-webkit-appearance:none;appearance:none;padding-right:2px}
   .opt .lbl{font-weight:600;white-space:nowrap}
 </style>
 </head>
@@ -212,6 +217,17 @@
     <div class="row2">
       <label class="opt"><span class="lbl">Tarih</span><input type="date" id="dateInput"></label>
       <label class="opt"><span class="lbl">Saat</span><input type="time" id="timeInput"></label>
+    </div>
+    <div class="row3">
+      <label class="opt">
+        <span class="lbl">Tekrar</span>
+        <select id="repeatInput">
+          <option value="none">Yok</option>
+          <option value="daily">Her gün</option>
+          <option value="weekdays">Hafta içi (Pzt-Cum)</option>
+          <option value="weekly">Haftalık (seçili gün)</option>
+        </select>
+      </label>
     </div>
   </div>
 </div>
@@ -271,6 +287,7 @@ const list=document.getElementById('list');
 const input=document.getElementById('input');
 const dateInput=document.getElementById('dateInput');
 const timeInput=document.getElementById('timeInput');
+const repeatInput=document.getElementById('repeatInput');
 const addBtn=document.getElementById('addBtn');
 const counter=document.getElementById('counter');
 const barFill=document.getElementById('barFill');
@@ -282,8 +299,51 @@ function todayStr(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-document.getElementById('dateLabel').textContent=
-  new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+function addDays(dateStr,n){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  dt.setDate(dt.getDate()+n);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+function dowOf(dateStr){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  return new Date(y,m-1,d).getDay();
+}
+function isoWeekNum(date){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  const dayNum=(d.getUTCDay()+6)%7;
+  d.setUTCDate(d.getUTCDate()-dayNum+3);
+  const firstThursday=new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const firstDayNum=(firstThursday.getUTCDay()+6)%7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate()-firstDayNum+3);
+  return 1+Math.round((d-firstThursday)/(7*24*3600*1000));
+}
+function nextOccurrenceDate(t,fromDateStr){
+  let d=addDays(fromDateStr,1);
+  if(t.repeat==='daily')return d;
+  if(t.repeat==='weekdays'){
+    while(dowOf(d)===0||dowOf(d)===6)d=addDays(d,1);
+    return d;
+  }
+  if(t.repeat==='weekly'){
+    while(dowOf(d)!==t.repeatDay)d=addDays(d,1);
+    return d;
+  }
+  return null;
+}
+const WEEKDAY_NAMES=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+function repeatText(t){
+  if(t.repeat==='daily')return 'Her gün';
+  if(t.repeat==='weekdays')return 'Hafta içi';
+  if(t.repeat==='weekly')return 'Her '+WEEKDAY_NAMES[t.repeatDay];
+  return '';
+}
+function genId(){
+  return Date.now()+'-'+Math.random().toString(36).slice(2,8);
+}
+document.getElementById('dateLabel').innerHTML=
+  new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+
+  ' <span class="week-chip">W'+isoWeekNum(new Date())+'</span>';
 dateInput.min=todayStr();
 
 function load(){
@@ -303,20 +363,47 @@ function save(){
 function addTask(){
   const t=input.value.trim();
   if(!t)return;
+  const repeat=repeatInput.value==='none'?null:repeatInput.value;
+  let date=dateInput.value||todayStr();
+  let repeatDay=null;
+  if(repeat==='weekly'){
+    repeatDay=dowOf(date);
+  }else if(repeat==='weekdays'){
+    while(dowOf(date)===0||dowOf(date)===6)date=addDays(date,1);
+  }
   tasks.unshift({
     id:Date.now(),
     text:t,
     done:false,
-    date:dateInput.value||todayStr(),
-    time:timeInput.value||null
+    date,
+    time:timeInput.value||null,
+    repeat,
+    repeatDay
   });
-  input.value='';dateInput.value='';timeInput.value='';
+  input.value='';dateInput.value='';timeInput.value='';repeatInput.value='none';
   save();render();
 }
 addBtn.onclick=addTask;
 input.addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
 
-function toggle(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();render();}}
+function toggle(id){
+  const t=tasks.find(x=>x.id===id);
+  if(!t)return;
+  t.done=!t.done;
+  if(t.done&&t.repeat){
+    const base=t.date>todayStr()?t.date:todayStr();
+    tasks.push({
+      id:genId(),
+      text:t.text,
+      done:false,
+      date:nextOccurrenceDate(t,base),
+      time:t.time,
+      repeat:t.repeat,
+      repeatDay:t.repeatDay
+    });
+  }
+  save();render();
+}
 function remove(id){tasks=tasks.filter(x=>x.id!==id);save();render();}
 function startEdit(id){editingId=id;render();}
 clearBtn.onclick=()=>{tasks=tasks.filter(x=>!x.done);save();render();};
@@ -371,12 +458,22 @@ function editTaskEl(t){
 
   row2.appendChild(dateLbl);row2.appendChild(timeLbl);
 
+  const row3=document.createElement('div');row3.className='edit-row3';
+  const repeatLbl=document.createElement('label');repeatLbl.className='opt';
+  repeatLbl.innerHTML='<span class="lbl">Tekrar</span>';
+  const repeatSelect=document.createElement('select');repeatSelect.className='edit-repeat';
+  [['none','Yok'],['daily','Her gün'],['weekdays','Hafta içi (Pzt-Cum)'],['weekly','Haftalık (seçili gün)']]
+    .forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;repeatSelect.appendChild(o);});
+  repeatSelect.value=t.repeat||'none';
+  repeatLbl.appendChild(repeatSelect);
+  row3.appendChild(repeatLbl);
+
   const actions=document.createElement('div');actions.className='edit-actions';
   const cancelBtn=document.createElement('button');cancelBtn.type='button';cancelBtn.className='edit-cancel';cancelBtn.textContent='İptal';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='edit-save';saveBtn.textContent='Kaydet';
   actions.appendChild(cancelBtn);actions.appendChild(saveBtn);
 
-  form.appendChild(textInput);form.appendChild(row2);form.appendChild(actions);
+  form.appendChild(textInput);form.appendChild(row2);form.appendChild(row3);form.appendChild(actions);
   div.appendChild(form);
 
   cancelBtn.onclick=()=>{editingId=null;render();};
@@ -386,6 +483,9 @@ function editTaskEl(t){
     t.text=newText;
     t.date=dateInputEl.value||todayStr();
     t.time=timeInputEl.value||null;
+    const repeatVal=repeatSelect.value;
+    t.repeat=repeatVal==='none'?null:repeatVal;
+    t.repeatDay=repeatVal==='weekly'?dowOf(t.date):null;
     editingId=null;
     save();render();
   };
@@ -402,6 +502,7 @@ function taskEl(t,showDate){
   let meta='';
   if(t.time)meta+='<span class="chip time">⏰ '+t.time+'</span>';
   if(showDate)meta+='<span class="chip date-chip">📅 '+fmtDate(t.date)+'</span>';
+  if(t.repeat)meta+='<span class="chip repeat-chip">🔁 '+repeatText(t)+'</span>';
   if(late)meta+='<span class="chip late-chip">Gecikti!</span>';
   div.innerHTML=
     '<button class="check" aria-label="Tamamla"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>'+

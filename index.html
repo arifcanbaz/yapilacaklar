@@ -431,6 +431,10 @@ function fmtDate(s){
   const [y,m,d]=s.split('-');
   return new Date(y,m-1,d).toLocaleDateString('tr-TR',{weekday:'short',day:'numeric',month:'long'});
 }
+function weekOfDateStr(s){
+  const [y,m,d]=s.split('-').map(Number);
+  return isoWeekNum(new Date(y,m-1,d));
+}
 
 function editTaskEl(t){
   const div=document.createElement('div');
@@ -501,7 +505,7 @@ function taskEl(t,showDate){
   div.className='task'+(t.done?' done':'')+(late?' late':'');
   let meta='';
   if(t.time)meta+='<span class="chip time">⏰ '+t.time+'</span>';
-  if(showDate)meta+='<span class="chip date-chip">📅 '+fmtDate(t.date)+'</span>';
+  if(showDate)meta+='<span class="chip date-chip">📅 '+fmtDate(t.date)+' · W'+weekOfDateStr(t.date)+'</span>';
   if(t.repeat)meta+='<span class="chip repeat-chip">🔁 '+repeatText(t)+'</span>';
   if(late)meta+='<span class="chip late-chip">Gecikti!</span>';
   div.innerHTML=
@@ -565,7 +569,7 @@ function render(){
     plannedTasks.forEach(t=>{(byDate[t.date]=byDate[t.date]||[]).push(t)});
     Object.keys(byDate).sort().forEach(d=>{
       const gl=document.createElement('div');gl.className='group-label';
-      gl.innerHTML='<b>'+fmtDate(d)+'</b>';
+      gl.innerHTML='<b>'+fmtDate(d)+'</b> · W'+weekOfDateStr(d);
       list.appendChild(gl);
       byDate[d].sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'))
         .forEach(t=>list.appendChild(taskEl(t,false)));

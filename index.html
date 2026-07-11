@@ -35,11 +35,19 @@
     max-width:560px;margin:0 auto;
     padding-top:env(safe-area-inset-top);
   }
-  header{padding:18px 18px 10px}
+  header{position:relative;padding:18px 66px 10px 18px}
   .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);font-weight:600;margin-bottom:3px}
   h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
   .date{font-size:13px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px}
   .week-chip{font-size:11px;font-weight:700;color:var(--blue);background:rgba(91,155,213,.14);padding:2px 7px;border-radius:6px}
+
+  .fab{
+    position:absolute;top:14px;right:18px;width:44px;height:44px;border:none;border-radius:13px;
+    background:var(--amber);color:#15171C;font-size:26px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s;
+    box-shadow:0 6px 16px rgba(245,166,35,.25);
+  }
+  .fab:active{transform:scale(.92)}
 
   .progress{margin:10px 18px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
   .progress-top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
@@ -61,7 +69,7 @@
   }
   .tab .badge.show{display:inline-flex}
 
-  main{flex:1;overflow-y:auto;padding:6px 18px 150px;-webkit-overflow-scrolling:touch}
+  main{flex:1;overflow-y:auto;padding:6px 18px calc(20px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
 
   .group-label{
     font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
@@ -147,12 +155,24 @@
   @keyframes slideDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
   .alarm small{display:block;font-weight:400;opacity:.9;margin-top:3px;font-size:12.5px}
 
-  .composer{
-    position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;
-    padding:10px 14px calc(14px + env(safe-area-inset-bottom));
-    background:linear-gradient(to top, var(--bg) 80%, transparent);
+  .composer-overlay{
+    position:fixed;inset:0;z-index:70;
+    display:flex;align-items:flex-end;justify-content:center;
+    background:rgba(0,0,0,0);pointer-events:none;
+    transition:background .2s ease;
   }
-  .composer-box{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:10px}
+  .composer-overlay.show{background:rgba(0,0,0,.55);pointer-events:auto}
+  .composer{
+    width:100%;max-width:560px;
+    padding:10px 14px calc(14px + env(safe-area-inset-bottom));
+    transform:translateY(110%);transition:transform .25s ease;
+  }
+  .composer-overlay.show .composer{transform:translateY(0)}
+  .composer-box{background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:10px;box-shadow:0 -8px 30px rgba(0,0,0,.4)}
+  .composer-head{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px}
+  .composer-head span{font-size:14px;font-weight:700}
+  .composer-close{background:none;border:none;color:var(--muted);font-size:20px;line-height:1;padding:4px 8px;cursor:pointer;border-radius:8px}
+  .composer-close:active{color:var(--red)}
   .row1{display:flex;gap:8px}
   .row1 input[type=text]{
     flex:1;background:none;border:none;outline:none;color:var(--text);
@@ -188,6 +208,7 @@
   <div class="eyebrow">Görev Panosu</div>
   <h1>Yapılacaklar</h1>
   <div class="date" id="dateLabel"></div>
+  <button class="fab" id="fabBtn" aria-label="Yeni görev ekle">+</button>
 </header>
 
 <div class="progress">
@@ -208,26 +229,32 @@
   <button class="clear-done" id="clearDone">Bitenleri temizle</button>
 </main>
 
-<div class="composer">
-  <div class="composer-box">
-    <div class="row1">
-      <input id="input" type="text" placeholder="Yeni görev..." enterkeyhint="done" autocomplete="off">
-      <button class="add" id="addBtn">+</button>
-    </div>
-    <div class="row2">
-      <label class="opt"><span class="lbl">Tarih</span><input type="date" id="dateInput"></label>
-      <label class="opt"><span class="lbl">Saat</span><input type="time" id="timeInput"></label>
-    </div>
-    <div class="row3">
-      <label class="opt">
-        <span class="lbl">Tekrar</span>
-        <select id="repeatInput">
-          <option value="none">Yok</option>
-          <option value="daily">Her gün</option>
-          <option value="weekdays">Hafta içi (Pzt-Cum)</option>
-          <option value="weekly">Haftalık (seçili gün)</option>
-        </select>
-      </label>
+<div class="composer-overlay" id="composerOverlay">
+  <div class="composer">
+    <div class="composer-box">
+      <div class="composer-head">
+        <span>Yeni Görev</span>
+        <button class="composer-close" id="composerClose" aria-label="Kapat">✕</button>
+      </div>
+      <div class="row1">
+        <input id="input" type="text" placeholder="Yeni görev..." enterkeyhint="done" autocomplete="off">
+        <button class="add" id="addBtn">+</button>
+      </div>
+      <div class="row2">
+        <label class="opt"><span class="lbl">Tarih</span><input type="date" id="dateInput"></label>
+        <label class="opt"><span class="lbl">Saat</span><input type="time" id="timeInput"></label>
+      </div>
+      <div class="row3">
+        <label class="opt">
+          <span class="lbl">Tekrar</span>
+          <select id="repeatInput">
+            <option value="none">Yok</option>
+            <option value="daily">Her gün</option>
+            <option value="weekdays">Hafta içi (Pzt-Cum)</option>
+            <option value="weekly">Haftalık (seçili gün)</option>
+          </select>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -294,6 +321,16 @@ const barFill=document.getElementById('barFill');
 const clearBtn=document.getElementById('clearDone');
 const alarmEl=document.getElementById('alarm');
 const lateBadge=document.getElementById('lateBadge');
+const fabBtn=document.getElementById('fabBtn');
+const composerOverlay=document.getElementById('composerOverlay');
+const composerClose=document.getElementById('composerClose');
+
+function openComposer(){composerOverlay.classList.add('show');input.focus();}
+function closeComposer(){composerOverlay.classList.remove('show');input.blur();}
+fabBtn.onclick=openComposer;
+composerClose.onclick=closeComposer;
+composerOverlay.addEventListener('click',e=>{if(e.target===composerOverlay)closeComposer();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeComposer();});
 
 function todayStr(){
   const d=new Date();
@@ -382,6 +419,7 @@ function addTask(){
   });
   input.value='';dateInput.value='';timeInput.value='';repeatInput.value='none';
   save();render();
+  closeComposer();
 }
 addBtn.onclick=addTask;
 input.addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});

@@ -106,6 +106,8 @@
   .chip.late-chip{color:#fff;background:var(--red)}
   .chip.date-chip{color:var(--blue);background:rgba(91,155,213,.14)}
   .chip.repeat-chip{color:var(--green);background:rgba(61,190,123,.14)}
+  .detail-toggle{background:none;border:none;color:var(--blue);font-size:12.5px;font-weight:600;padding:4px 0 0;margin-top:2px;cursor:pointer;font-family:inherit;text-align:left}
+  .task-note{margin-top:6px;padding:9px 10px;background:var(--panel-2);border-radius:8px;font-size:13.5px;line-height:1.45;color:var(--text);white-space:pre-wrap;word-break:break-word}
   .del,.edit{background:none;border:none;color:var(--muted);padding:6px;cursor:pointer;display:flex;border-radius:8px}
   .del:active{color:var(--red)}
   .edit:active{color:var(--amber)}
@@ -118,8 +120,9 @@
     padding:10px 12px;color:var(--text);font-size:15px;font-family:inherit;outline:none;width:100%;
   }
   .edit-row2,.edit-row3{display:flex;gap:8px}
-  .edit-row2 .opt,.edit-row3 .opt{flex:1;display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;color:var(--muted)}
-  .edit-row2 .opt input,.edit-row3 .opt select{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
+  .edit-row2 .opt,.edit-row3 .opt,.edit-row4 .opt{flex:1;display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;color:var(--muted)}
+  .edit-row2 .opt input,.edit-row3 .opt select,.edit-row4 .opt textarea{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:inherit;color-scheme:dark;min-width:0}
+  .edit-row4 .opt textarea{resize:vertical;min-height:40px;width:100%}
   .edit-row3 .opt select{-webkit-appearance:none;appearance:none}
   .edit-row2 .opt .lbl,.edit-row3 .opt .lbl{font-weight:600;white-space:nowrap}
   .edit-actions{display:flex;gap:8px;justify-content:flex-end}
@@ -187,16 +190,18 @@
   .add:active{transform:scale(.92)}
   .row2{display:flex;gap:8px;margin-top:8px}
   .row3{margin-top:8px}
+  .row4{margin-top:8px}
   .opt{
     flex:1;display:flex;align-items:center;gap:6px;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;
     padding:7px 10px;font-size:13px;color:var(--muted);
   }
-  .opt input,.opt select{
+  .opt input,.opt select,.opt textarea{
     flex:1;background:none;border:none;outline:none;color:var(--text);
     font-size:14px;font-family:inherit;color-scheme:dark;min-width:0;
   }
   .opt select{-webkit-appearance:none;appearance:none;padding-right:2px}
+  .opt textarea{resize:vertical;min-height:40px;width:100%}
   .opt .lbl{font-weight:600;white-space:nowrap}
 </style>
 </head>
@@ -255,6 +260,12 @@
           </select>
         </label>
       </div>
+      <div class="row4">
+        <label class="opt">
+          <span class="lbl">Not</span>
+          <textarea id="noteInput" rows="2" placeholder="Uzun açıklama ekleyebilirsin..."></textarea>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -273,6 +284,7 @@ let tasks=[];
 let filter='today';
 let notifiedIds=new Set();
 let editingId=null;
+let expandedId=null;
 
 function getDeviceId(){
   let id=localStorage.getItem('device-id');
@@ -315,6 +327,7 @@ const input=document.getElementById('input');
 const dateInput=document.getElementById('dateInput');
 const timeInput=document.getElementById('timeInput');
 const repeatInput=document.getElementById('repeatInput');
+const noteInput=document.getElementById('noteInput');
 const addBtn=document.getElementById('addBtn');
 const counter=document.getElementById('counter');
 const barFill=document.getElementById('barFill');
@@ -415,9 +428,10 @@ function addTask(){
     date,
     time:timeInput.value||null,
     repeat,
-    repeatDay
+    repeatDay,
+    note:noteInput.value.trim()||null
   });
-  input.value='';dateInput.value='';timeInput.value='';repeatInput.value='none';
+  input.value='';dateInput.value='';timeInput.value='';repeatInput.value='none';noteInput.value='';
   save();render();
   closeComposer();
 }
@@ -437,7 +451,8 @@ function toggle(id){
       date:nextOccurrenceDate(t,base),
       time:t.time,
       repeat:t.repeat,
-      repeatDay:t.repeatDay
+      repeatDay:t.repeatDay,
+      note:t.note||null
     });
   }
   save();render();
@@ -510,12 +525,21 @@ function editTaskEl(t){
   repeatLbl.appendChild(repeatSelect);
   row3.appendChild(repeatLbl);
 
+  const row4=document.createElement('div');row4.className='edit-row4';
+  const noteLbl=document.createElement('label');noteLbl.className='opt';
+  noteLbl.innerHTML='<span class="lbl">Not</span>';
+  const noteInputEl=document.createElement('textarea');
+  noteInputEl.rows=2;noteInputEl.placeholder='Uzun açıklama ekleyebilirsin...';
+  if(t.note)noteInputEl.value=t.note;
+  noteLbl.appendChild(noteInputEl);
+  row4.appendChild(noteLbl);
+
   const actions=document.createElement('div');actions.className='edit-actions';
   const cancelBtn=document.createElement('button');cancelBtn.type='button';cancelBtn.className='edit-cancel';cancelBtn.textContent='İptal';
   const saveBtn=document.createElement('button');saveBtn.type='button';saveBtn.className='edit-save';saveBtn.textContent='Kaydet';
   actions.appendChild(cancelBtn);actions.appendChild(saveBtn);
 
-  form.appendChild(textInput);form.appendChild(row2);form.appendChild(row3);form.appendChild(actions);
+  form.appendChild(textInput);form.appendChild(row2);form.appendChild(row3);form.appendChild(row4);form.appendChild(actions);
   div.appendChild(form);
 
   cancelBtn.onclick=()=>{editingId=null;render();};
@@ -528,6 +552,7 @@ function editTaskEl(t){
     const repeatVal=repeatSelect.value;
     t.repeat=repeatVal==='none'?null:repeatVal;
     t.repeatDay=repeatVal==='weekly'?dowOf(t.date):null;
+    t.note=noteInputEl.value.trim()||null;
     editingId=null;
     save();render();
   };
@@ -546,12 +571,21 @@ function taskEl(t,showDate){
   if(showDate)meta+='<span class="chip date-chip">📅 '+fmtDate(t.date)+' · W'+weekOfDateStr(t.date)+'</span>';
   if(t.repeat)meta+='<span class="chip repeat-chip">🔁 '+repeatText(t)+'</span>';
   if(late)meta+='<span class="chip late-chip">Gecikti!</span>';
+  const hasNote=!!(t.note&&t.note.trim());
+  const expanded=hasNote&&t.id===expandedId;
   div.innerHTML=
     '<button class="check" aria-label="Tamamla"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 6.5"/></svg></button>'+
-    '<div class="task-body"><div class="task-text"></div>'+(meta?'<div class="task-meta">'+meta+'</div>':'')+'</div>'+
+    '<div class="task-body"><div class="task-text"></div>'+(meta?'<div class="task-meta">'+meta+'</div>':'')+
+      (hasNote?'<button class="detail-toggle">'+(expanded?'Detayları gizle':'Detayları göster')+'</button>':'')+
+      (expanded?'<div class="task-note"></div>':'')+
+    '</div>'+
     '<button class="edit" aria-label="Düzenle"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>'+
     '<button class="del" aria-label="Sil"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2m-9 0l1 13h8l1-13"/></svg></button>';
   div.querySelector('.task-text').textContent=t.text;
+  if(expanded)div.querySelector('.task-note').textContent=t.note;
+  if(hasNote){
+    div.querySelector('.detail-toggle').onclick=()=>{expandedId=expanded?null:t.id;render();};
+  }
   div.querySelector('.check').onclick=()=>toggle(t.id);
   div.querySelector('.edit').onclick=()=>startEdit(t.id);
   div.querySelector('.del').onclick=()=>remove(t.id);
